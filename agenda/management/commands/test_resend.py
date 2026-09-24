@@ -1,10 +1,9 @@
 from email.utils import parseaddr
-from smtplib import SMTPAuthenticationError, SMTPRecipientsRefused, SMTPSenderRefused
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import validate_email
+from agenda.notifications import ResendDeliveryError, send_transactional_email
 
 
 class Command(BaseCommand):
@@ -29,17 +28,11 @@ class Command(BaseCommand):
             self.stdout.write('Nenhuma conexão feita. Use --to EMAIL para testar autenticação e envio.')
             return
         try:
-            sent = send_mail('Teste de conexão — TVTEC Agenda',
-                             'Este é um teste de envio do TVTEC Agenda pelo Resend. Nenhuma reserva foi criada.',
-                             settings.DEFAULT_FROM_EMAIL, [options['recipient']], fail_silently=False)
-            if sent != 1:
-                raise CommandError('O provedor não aceitou a mensagem.')
-        except SMTPAuthenticationError:
-            raise CommandError('Autenticação recusada. Confira a chave e sua permissão de envio.') from None
-        except (SMTPRecipientsRefused, SMTPSenderRefused):
-            raise CommandError('Remetente ou destinatário recusado. Confira o domínio verificado e as restrições da conta Resend.') from None
-        except CommandError:
-            raise
+            send_transactional_email('Teste de conexão — TVTEC Agenda',
+                                     'Este é um teste de envio do TVTEC Agenda pelo Resend. Nenhuma reserva foi criada.',
+                                     options['recipient'], 'resend-configuration-test')
+        except ResendDeliveryError:
+            raise CommandError('Falha no envio. Confira a chave, o domínio verificado, a saída HTTPS e o painel Resend.') from None
         except Exception:
-            raise CommandError('Falha no envio. Confira domínio, chave, acesso à porta 465 e o painel Resend.') from None
+            raise CommandError('Falha no envio. Confira a configuração do Resend.') from None
         self.stdout.write(self.style.SUCCESS('Mensagem aceita pelo Resend. Confirme o recebimento e o estado da entrega no painel.'))

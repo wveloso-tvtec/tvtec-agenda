@@ -57,3 +57,19 @@ class BookingNotifications(TestCase):
         with self.assertRaises(Problem):
             save_occupancy(self.user,{**self.data,'request_key':'conflict'})
         self.assertEqual(BookingEmail.objects.count(),1)
+
+
+@override_settings(DEFAULT_FROM_EMAIL='Agenda <agenda@example.test>', MAIL_MODE='resend', RESEND_API_KEY='test-key')
+class ResendBookingNotifications(TestCase):
+    def test_booking_uses_https_sender_and_idempotency_key(self):
+        user = person()
+        resource = Resource.objects.get(key='gol')
+        start = (timezone.now().astimezone(TZ) + timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+        data = dict(resource=resource.pk, start=start.isoformat(), end=(start + timedelta(days=1)).isoformat(), mode='day', title='Visita', driver='Condutor', destination='Destino', request_key='resend-email-test')
+        with patch('agenda.notifications._send_resend', return_value='email_123') as sender:
+            with self.captureOnCommitCallbacks(execute=True):
+                booking = save_occupancy(user, data)
+        sender.assert_called_once()
+        self.assertEqual(sender.call_args.args[2], user.email)
+        self.assertEqual(sender.call_args.args[3], f'booking-confirmation/{booking.pk}')
+        self.assertIsNotNone(BookingEmail.objects.get(occupancy=booking).sent_at)

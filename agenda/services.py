@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.db import transaction
-from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -195,8 +194,10 @@ def check_email(email):
     return email
 
 def ensure_mail():
-    if settings.MAIL_MODE == 'resend' and not settings.RESEND_API_KEY:
-        raise Problem('O envio pelo Resend ainda não foi configurado. Contate a administração.',503)
+    if settings.MAIL_MODE == 'resend':
+        if not settings.RESEND_API_KEY or not settings.DEFAULT_FROM_EMAIL:
+            raise Problem('O envio pelo Resend ainda não foi configurado. Contate a administração.',503)
+        return
     if settings.MAIL_MODE!='file' and (not settings.EMAIL_HOST or not settings.DEFAULT_FROM_EMAIL): raise Problem('O envio de e-mails ainda não foi configurado. Contate a administração.',503)
 
 def send_token(user,purpose='invite'):
@@ -205,10 +206,11 @@ def send_token(user,purpose='invite'):
     expires=timezone.now()+timedelta(hours=48 if purpose=='invite' else 1)
     # Call inside a transaction; a failed delivery does not invalidate the old link.
     Invitation.objects.filter(user=user,purpose=purpose,used=False).update(used=True)
-    Invitation.objects.create(user=user,purpose=purpose,digest=hashlib.sha256(raw.encode()).hexdigest(),expires=expires)
+    invitation=Invitation.objects.create(user=user,purpose=purpose,digest=hashlib.sha256(raw.encode()).hexdigest(),expires=expires)
     link=f'{settings.PUBLIC_URL}/ativar?token={raw}'
     subject='Convite para TVTEC Agenda' if purpose=='invite' else 'Redefinição de senha — TVTEC Agenda'
-    send_mail(subject,f'Olá, {user.first_name or user.email}.\n\nPara verificar seu e-mail e definir sua senha, acesse:\n{link}\n\nEste link é individual e expira em {expires.astimezone(TZ):%d/%m/%Y às %Hh%M}. Se não reconhece esta solicitação, ignore a mensagem.\n\nTVTEC Agenda',settings.DEFAULT_FROM_EMAIL or 'desenvolvimento@localhost',[user.email],fail_silently=False)
+    from .notifications import send_transactional_email
+    send_transactional_email(subject,f'Olá, {user.first_name or user.email}.\n\nPara verificar seu e-mail e definir sua senha, acesse:\n{link}\n\nEste link é individual e expira em {expires.astimezone(TZ):%d/%m/%Y às %Hh%M}. Se não reconhece esta solicitação, ignore a mensagem.\n\nTVTEC Agenda',user.email,f'{purpose}/{invitation.pk}')
 
 @transaction.atomic
 def invite_user(actor,data):

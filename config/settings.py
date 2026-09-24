@@ -72,11 +72,4 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS','1') == '1'
 EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL','')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
-if MAIL_MODE == 'resend':
-    EMAIL_HOST = 'smtp.resend.com'
-    EMAIL_PORT = 465
-    EMAIL_HOST_USER = 'resend'
-    EMAIL_HOST_PASSWORD = RESEND_API_KEY
-    EMAIL_USE_TLS = False
-    EMAIL_USE_SSL = True
 CSRF_FAILURE_VIEW = 'agenda.views.csrf_failure'

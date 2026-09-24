@@ -6,7 +6,7 @@ Aplicação de reservas de salas e veículos da Fundação Escola TVTEC Jundiaí
 
 Envie a pasta inteira do projeto para o GitHub. O arquivo HTML da interface está em `templates/index.html`, mas ele depende de `agenda/`, `config/`, migrations, banco e dos arquivos em `static/`; publicar somente o HTML em GitHub Pages não executará login, reservas ou persistência.
 
-O `Procfile` incluído inicia o servidor WSGI em serviços que fornecem `PORT`. Antes de abrir o acesso institucional, configure `DEBUG=0`, `SECRET_KEY` exclusiva, `ALLOWED_HOSTS`, `PUBLIC_URL`, HTTPS e SMTP conforme a seção de produção. A aplicação local atual usa SQLite; para operação com múltiplos processos ou máquinas, valide PostgreSQL, incluindo concorrência nas reservas e operações administrativas, antes da abertura pública. GitHub é o repositório do código, não o servidor da aplicação.
+O `Procfile` incluído inicia o servidor WSGI em serviços que fornecem `PORT`. Antes de abrir o acesso institucional, configure `DEBUG=0`, `SECRET_KEY` exclusiva, `ALLOWED_HOSTS`, `PUBLIC_URL`, HTTPS, PostgreSQL e e-mail conforme a seção de produção. GitHub é o repositório do código, não o servidor da aplicação.
 
 O projeto já aceita `DATABASE_URL` no formato `postgresql://...`; quando essa variável existe, ela substitui `DATABASE_PATH` e usa PostgreSQL com conexão persistente. O `build.sh` executa `collectstatic` e `migrate` durante o deploy.
 
@@ -30,7 +30,7 @@ As migrations criam as tabelas, os triggers de integridade e, de forma idempoten
 
 ## Administrador inicial: ativação segura
 
-1. Configure e teste o SMTP e `PUBLIC_URL` no `.env`, conforme a seção seguinte.
+1. Configure e teste o Resend e `PUBLIC_URL` no `.env`, conforme a seção seguinte.
 2. Execute `python manage.py provision_admin` usando o Python do ambiente virtual.
 3. O comando cria **wveloso@tvtecjundiai.com.br** como administrador pendente, sem senha utilizável, e envia um convite individual de 48 horas.
 4. A pessoa proprietária dessa caixa de e-mail abre o link, verifica o e-mail e define sua própria senha (mínimo de 12 caracteres, validadores do Django).
@@ -38,7 +38,7 @@ As migrations criam as tabelas, os triggers de integridade e, de forma idempoten
 
 Reexecutar o comando reenvia o convite pendente e invalida o anterior. Conta já verificada não é promovida ou alterada por esse procedimento. Novos administradores são geridos por outro administrador na aplicação. O último administrador ativo não pode ser desativado nem perder o perfil.
 
-**O envio de convite para a caixa institucional ainda não foi validado.** O SMTP institucional não foi fornecido. O pacote distribuído não inclui a base local nem contas e senhas. A conta local de Witter Veloso não é transferida automaticamente ao servidor; provisione o administrador no banco da hospedagem.
+**O envio de convite para a caixa institucional ainda não foi validado.** A chave e o domínio verificado do Resend não foram fornecidos. O pacote distribuído não inclui a base local nem contas e senhas. A conta local de Witter Veloso não é transferida automaticamente ao servidor; provisione o administrador no banco da hospedagem.
 
 ## E-mails, convites e recuperação
 
@@ -48,7 +48,7 @@ Copie `.env.example` para uma configuração de implantação e preencha:
 - `PUBLIC_URL`: origem HTTPS definitiva, sem barra final. Os links enviados usam esta origem, nunca o cabeçalho Host do pedido.
 - `ALLOWED_HOSTS`: nomes de host separados por vírgula, sem protocolo.
 - `CSRF_TRUSTED_ORIGINS`: origens HTTPS autorizadas, separadas por vírgula.
-- `MAIL_MODE=smtp`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS=1` e `DEFAULT_FROM_EMAIL`.
+- `MAIL_MODE=resend`, `RESEND_API_KEY` e `DEFAULT_FROM_EMAIL`; consulte RESEND.md.
 - `DEBUG=0` em produção.
 
 Convites: **Usuários e acessos → Convidar** ou **Gerenciar → Reenviar convite**. Convites expiram em 48 horas. Recuperação: **Esqueci minha senha**, na tela de acesso; links expiram em uma hora. Os tokens são aleatórios, armazenados somente por hash e invalidados após uso. Alterar a senha invalida sessões anteriores. Não há cadastro público.
@@ -101,7 +101,7 @@ waitress-serve --listen=127.0.0.1:8000 config.wsgi:application
 
 Coloque um proxy HTTPS à frente do Waitress. Configure a informação de esquema do proxy de modo que Django receba `wsgi.url_scheme=https` somente de um proxy confiável; não confie indiscriminadamente em cabeçalhos enviados pelo cliente. Mantenha o servidor WSGI acessível apenas pelo proxy. O WhiteNoise serve arquivos estáticos coletados. Programe backup consistente do SQLite (API de backup SQLite ou backup com aplicação parada) e teste restauração. Execute `python manage.py clearsessions` periodicamente para remover sessões expiradas.
 
-Pendências para operação institucional: configuração SMTP real e teste de entrega; escolha de hospedagem/domínio/TLS e backup; provisionamento do administrador no banco da hospedagem; definição dos períodos de manhã/tarde conforme decisão da instituição. Esses itens dependem de informações externas que não foram fornecidas.
+Pendências para operação institucional: configuração real do Resend e teste de entrega; escolha de hospedagem/domínio/TLS e backup; provisionamento do administrador no banco da hospedagem; definição dos períodos de manhã/tarde conforme decisão da instituição. Esses itens dependem de informações externas que não foram fornecidas.
 
 
 ## Confirmações pelo Resend

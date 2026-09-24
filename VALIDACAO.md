@@ -3,13 +3,13 @@
 ## Resend e revisão visual
 
 - Suíte completa: **40 testes aprovados**, em 175,678 segundos, com SQLite e e-mail em memória.
-- Novos testes: envio após commit ao responsável, repetição idempotente, falha SMTP preservando a reserva, reenvio pendente, rollback sem mensagem e conflito sem outra confirmação.
+- Novos testes: envio após commit ao responsável, repetição idempotente, falha de entrega preservando a reserva, reenvio pendente, rollback sem mensagem e conflito sem outra confirmação.
 - Nome da sala 2 atualizado para corredor rádio, mantendo o mesmo recurso e reservas.
 - Hierarquia de nomes, corredores e capacidades revisada em cartões e navegação; contraste e espaçamento melhorados.
 - Consulta de disponibilidade até meia-noite corrigida para exibir 24:00.
 - Verificação visual em layouts de desktop e celular; largura do conteúdo igual à largura disponível, sem rolagem horizontal nos cenários observados.
-- Resend preparado via SMTP SSL. A chave não está configurada e não foi realizado envio externo: ativação e teste real seguem RESEND.md.
-- A fila precisa do comando send_booking_emails agendado no servidor para recuperar falhas. SMTP pode repetir uma mensagem se houver queda após a aceitação e antes de registrar o envio.
+- Resend preparado pela API HTTPS. A chave não está configurada e não foi realizado envio externo: ativação e teste real seguem RESEND.md.
+- A fila precisa do comando send_booking_emails agendado no servidor para recuperar falhas. A API usa chave de idempotência, mas a aceitação pelo provedor não é confirmação de entrega na caixa.
 - PostgreSQL e entrega real no provedor ainda não foram validados. Os testes aprovados não garantem ausência de todos os erros.
 
 ## Revisão atual
